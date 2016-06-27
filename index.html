@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<title>Jive</title>
+		<link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" />
+		<link rel="stylesheet" href="/resources/wdc.css" />
+		<link rel="stylesheet" href="/resources/jive.css" />
+		<script src="//code.jquery.com/jquery-1.11.1.js"></script>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<script src="//connectors.tableau.com/libs/tableauwdc-2.0.0-beta.js"></script>
+		<script type="text/javascript" src="/resources/tableau-output.js"></script>
+		<script src="wdc.js"></script>
+		<script>
+			$(function() {
+				//event handlers
+				function formFieldOnChange()
+				{
+					//set up local vars
+					var requiredFieldsForPlaces = ["#site","#username","#password"];
+					var filled = true;
+					
+					//check each required field before attempting to grab the list of places
+					for(var i=0; i<requiredFieldsForPlaces.length; i++)
+					{
+						if($(requiredFieldsForPlaces[i]).val().length == 0)
+						{
+							filled = false;
+						}
+					}
+					if(filled)
+					{
+						showPlaces();
+					}
+					else
+					{
+						resetPlaces();
+					}
+					
+					//enable/disable the submit button
+					checkSubmitAbility();
+					//$("#submitButton").prop("disabled",!filled);
+				}
+				
+				
+				//utility functions
+				function checkSubmitAbility()
+				{
+					var selectedPlace = $( "#available_places_list option:selected" ).text();
+					var isNotSelected = (selectedPlace == "" || selectedPlace == "Loading...");
+					$("#submitButton").prop("disabled",isNotSelected);
+				}
+				function showPlaces()
+				{
+					//reset the list
+					$("#available_places_list").empty();
+					
+					//show that the places are being loaded
+					$("#available_places_list").append( $("<option>").text("Loading...") );
+					
+					//get form data
+					var site = $("#site").val();
+					var username = $("#username").val();
+					var password = $("#password").val();
+					
+					var url = "fetch_data.php";
+					var args = {'type': "places",
+					            'site': site,
+					            'username': username,
+					            'password': password};
+					$.post(url,args,function (data){
+						//reset the list one more time
+						$("#available_places_list").empty();
+						
+						//decode JSON
+						data = JSON.parse(data);
+						
+						//repopulate the list
+						for(i=0; i<data.length; i++)
+						{
+							var place = data[i];
+							var placeType = place['type'];
+							
+							//filter for reasons
+							if(placeType == "space")
+							{
+								var placeID = place['placeID'];
+								var placeName = place['name'];
+								$("#available_places_list").append(  $("<option>",{'value':placeID}).text(placeName)  );
+							}
+						}
+						
+						
+						//enable the drop-down box
+						$("#available_places_list").prop('disabled', false);
+						
+						//enable submit button
+						checkSubmitAbility();
+					});
+				}
+				function resetPlaces()
+				{
+					//clear the list
+					$("#available_places_list").empty();
+					
+					//disable to drop-down
+					$("#available_places_list").prop('disabled', true);
+					
+					//disable the submit button
+					checkSubmitAbility();
+				}
+				
+				
+				//onload functionality
+				function initialize()
+				{
+					$("#site").change(formFieldOnChange);
+					$("#username").change(formFieldOnChange);
+					$("#password").change(formFieldOnChange);
+					$("#available_places_list").change(checkSubmitAbility);
+					
+					//pre-process form fields
+					formFieldOnChange();
+				}
+				$(document).ready(initialize);
+			});
+		</script>
+	</head>
+	<body>
+		<div class="navbar navbar-default">
+			<a class="navbar-wdc" href="/">
+				<img id="wdc-logo-left" src="/resources/WDC_Logo.png" />
+				<div id="wdc-logo-right">
+					<img src="/resources/WDC_Logo_Header.png" />
+					<span>Jive</span>
+				</div>
+			</a>
+			<a class="navbar-brand" href="http://www.interworks.com">
+				<img src="//www.interworks.com/logo/images/logo.png" />
+			</a>
+			<div class="navbar-border">
+				<img src="/resources/WDC_Border.png" />
+			</div>
+		</div>
+		<div class="container">
+			<div class="alert alert-danger warning-msg" id="tableau-warning-msg" style="display:none;">
+				<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+				<b>Whoa!</b> We've detected you are loading this in a browser window.<br/><br/>
+				You can still download the data to a flat file, but for best performance, load this window from Tableau and use the
+				<a href="//onlinehelp.tableau.com/current/pro/online/windows/en-us/help.htm#examples_web_data_connector.html" target="_blank">Web Data Connector</a>.
+			</div>
+			
+			<noscript>
+				<div class="alert alert-danger warning-msg" id="noscript-warning">
+					<span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+					<em>Warning:</em>You need javascript enabled for Tableau Web Data Connectors to function.
+				</div>
+			</noscript>
+			
+			<!-- the good stuff -->
+			<form class="container">
+				<div>
+					<label for="site">Jive Site: </label>
+					<input type="text" id="site" placeholder="https://community.tableau.com">
+				</div>
+				
+				<div>
+					<label for="username">User: </label>
+					<input type="text" id="username">
+				</div>
+				
+				<div>
+					<label for="password">Password: </label>
+					<input type="password" id="password">
+				</div>
+				
+				<div id="available_places">
+					<label for="available_places_list">Available Spaces:</label>
+					<select name="place" id="available_places_list"></select>
+				</div>
+				
+				<button id="submitButton" type="button" class="btn">Get Data</button>
+			</form>
+		</div>
+		
+		<footer class="footer">
+			<div class="navbar-border">
+				<img src="/resources/WDC_Border.png" />
+			</div>
+			<div class="container">
+				<p class="text-muted">All data is &copy;<a href="//www.jivesoftware.com/" target="_blank">Jive</a> or the site specified above. Please refer to the applicable Terms of Service for usage terms.</p>
+			</div>
+		</footer>
+	</body>
+</html>
